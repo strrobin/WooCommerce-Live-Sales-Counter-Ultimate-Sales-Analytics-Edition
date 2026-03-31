@@ -102,25 +102,27 @@ class WC_Live_Sales_Counter_Ultimate {
             'apiUrl' => get_rest_url( null, 'wros/v1' ),
             'settings' => $this->get_all_settings()
         ) );
-    }
-
-    private function get_all_settings() {
+    }    private function get_all_settings() {
         return array(
-            'primary_color' => get_option( 'wros_primary_color', '#6366f1' ),
-            'text_color' => get_option( 'wros_text_color', '#111827' ),
             'template' => get_option( 'wros_template', 'style-1' ),
             'mode' => get_option( 'wros_mode', 'analytics' ),
-            'enabled_statuses' => get_option( 'wros_enabled_statuses', array( 'pending', 'processing', 'completed', 'on-hold' ) ),
-            'responsive' => get_option( 'wros_responsive', array() ),
-            'custom_css' => get_option( 'wros_custom_css', '' ),
-            'notifications_enabled' => get_option( 'wros_notifications_enabled', 'yes' ),
-            'notifications_position' => get_option( 'wros_notifications_position', 'bottom-left' ),
-            'notifications_interval' => get_option( 'wros_notifications_interval', 5000 ),
+            'enabledStatuses' => get_option( 'wros_enabledStatuses', array( 'pending' => true, 'processing' => true, 'completed' => true, 'onHold' => true ) ),
+            'demoStats' => get_option( 'wros_demoStats', array( 'pending' => '15', 'processing' => '42', 'completed' => '5,000+', 'onHold' => '8' ) ),
+            'notifications' => get_option( 'wros_notifications', array( 'enabled' => true, 'position' => 'bottom-right', 'interval' => 5000, 'fakeOrders' => true ) ),
+            'responsive' => get_option( 'wros_responsive', array(
+                'desktop' => array( 'columns' => 4, 'fontSize' => 24, 'fontFamily' => 'Inter', 'fontWeight' => '700', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 20, 'margin' => 10, 'gap' => 20, 'iconSize' => 40, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
+                'tablet' => array( 'columns' => 2, 'fontSize' => 20, 'fontFamily' => 'Inter', 'fontWeight' => '600', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 15, 'margin' => 8, 'gap' => 15, 'iconSize' => 30, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
+                'mobile' => array( 'columns' => 1, 'fontSize' => 18, 'fontFamily' => 'Inter', 'fontWeight' => '600', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 10, 'margin' => 5, 'gap' => 10, 'iconSize' => 25, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
+            ) ),
+            'colors' => get_option( 'wros_colors', array( 'primary' => '#6366f1', 'secondary' => '#4f46e5', 'text' => '#111827', 'background' => '#ffffff' ) ),
+            'customCss' => get_option( 'wros_customCss', '' ),
         );
     }
 
     private function enqueue_google_fonts() {
         $responsive = get_option( 'wros_responsive', array() );
+        if ( empty( $responsive ) ) return;
+        
         $fonts_to_load = array();
         foreach ( $responsive as $device => $settings ) {
             if ( ! empty( $settings['fontFamily'] ) && $settings['fontFamily'] !== 'system-ui' && $settings['fontFamily'] !== 'Inter' ) {
@@ -140,30 +142,56 @@ class WC_Live_Sales_Counter_Ultimate {
         $this->enqueue_google_fonts();
         $stats = $this->get_order_stats();
         $template = get_option( 'wros_template', 'style-1' );
-        $custom_css = get_option( 'wros_custom_css', '' );
-        $responsive = get_option( 'wros_responsive', array() );
+        $custom_css = get_option( 'wros_customCss', '' );
+        $responsive = get_option( 'wros_responsive', array(
+            'desktop' => array( 'columns' => 4, 'fontSize' => 24, 'fontFamily' => 'Inter', 'fontWeight' => '700', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 20, 'margin' => 10, 'gap' => 20, 'iconSize' => 40, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
+            'tablet' => array( 'columns' => 2, 'fontSize' => 20, 'fontFamily' => 'Inter', 'fontWeight' => '600', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 15, 'margin' => 8, 'gap' => 15, 'iconSize' => 30, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
+            'mobile' => array( 'columns' => 1, 'fontSize' => 18, 'fontFamily' => 'Inter', 'fontWeight' => '600', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 10, 'margin' => 5, 'gap' => 10, 'iconSize' => 25, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
+        ) );
+        $colors = get_option( 'wros_colors', array( 'primary' => '#6366f1', 'secondary' => '#4f46e5', 'text' => '#111827', 'background' => '#ffffff' ) );
         
         ob_start();
         ?>
         <style>
             .wros-container {
-                --wros-primary: <?php echo esc_attr( get_option( 'wros_primary_color', '#6366f1' ) ); ?>;
-                --wros-text: <?php echo esc_attr( get_option( 'wros_text_color', '#111827' ) ); ?>;
+                --wros-primary: <?php echo esc_attr( $colors['primary'] ); ?>;
+                --wros-text: <?php echo esc_attr( $colors['text'] ); ?>;
                 width: 100%;
             }
-            .wros-grid { display: grid; width: 100%; }
+            .wros-grid { 
+                display: grid; 
+                width: 100%; 
+                grid-template-columns: repeat(<?php echo esc_attr( $responsive['desktop']['columns'] ); ?>, minmax(0, 1fr));
+                gap: <?php echo esc_attr( $responsive['desktop']['gap'] ); ?>px;
+            }
             .wros-stat-card {
                 display: flex; flex-direction: column; align-items: center; text-align: center;
                 transition: all 0.3s ease; background: #fff; border: 1px solid #f3f4f6;
                 border-radius: 1rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                padding: <?php echo esc_attr( $responsive['desktop']['padding'] ); ?>px;
+                margin: <?php echo esc_attr( $responsive['desktop']['margin'] ); ?>px;
             }
             .wros-icon-wrapper {
-                padding: 0.75rem; border-radius: 9999px; margin-bottom: 1rem;
-                background: #f3f4f6; color: var(--wros-primary);
+                width: <?php echo esc_attr( $responsive['desktop']['iconSize'] * 1.5 ); ?>px;
+                height: <?php echo esc_attr( $responsive['desktop']['iconSize'] * 1.5 ); ?>px;
+                display: flex; align-items: center; justify-content: center;
+                border-radius: <?php echo $responsive['desktop']['iconBgShape'] === 'circle' ? '50%' : '12px'; ?>;
+                margin-bottom: 1rem;
+                background: <?php echo $responsive['desktop']['iconBgEnabled'] ? esc_attr( $responsive['desktop']['iconColor'] ) . '15' : 'transparent'; ?>;
+                color: <?php echo esc_attr( $responsive['desktop']['iconColor'] ); ?>;
             }
-            .wros-icon-wrapper svg { width: 1.5rem; height: 1.5rem; }
+            .wros-icon-wrapper svg { 
+                width: <?php echo esc_attr( $responsive['desktop']['iconSize'] ); ?>px; 
+                height: <?php echo esc_attr( $responsive['desktop']['iconSize'] ); ?>px; 
+            }
             .wros-label { font-size: 0.875rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.25rem; opacity: 0.7; }
-            .wros-value { font-weight: 700; letter-spacing: -0.025em; }
+            .wros-value { 
+                font-weight: <?php echo esc_attr( $responsive['desktop']['fontWeight'] ); ?>; 
+                font-size: <?php echo esc_attr( $responsive['desktop']['fontSize'] ); ?>px;
+                font-family: <?php echo esc_attr( $responsive['desktop']['fontFamily'] ); ?>;
+                line-height: <?php echo esc_attr( $responsive['desktop']['lineHeight'] ); ?>;
+                letter-spacing: <?php echo esc_attr( $responsive['desktop']['letterSpacing'] ); ?>px;
+            }
 
             /* Template Styles */
             .wros-template-style-11 .wros-stat-card, .wros-template-style-12 .wros-stat-card, .wros-template-style-13 .wros-stat-card, .wros-template-style-14 .wros-stat-card, .wros-template-style-15 .wros-stat-card, .wros-template-style-16 .wros-stat-card, .wros-template-style-17 .wros-stat-card, .wros-template-style-18 .wros-stat-card, .wros-template-style-19 .wros-stat-card, .wros-template-style-20 .wros-stat-card {
@@ -185,7 +213,7 @@ class WC_Live_Sales_Counter_Ultimate {
             }
             
             <?php 
-            foreach ( array( 'desktop' => '(min-width: 1025px)', 'tablet' => '(min-width: 769px) and (max-width: 1024px)', 'mobile' => '(max-width: 768px)' ) as $key => $query ) : 
+            foreach ( array( 'tablet' => '(min-width: 769px) and (max-width: 1024px)', 'mobile' => '(max-width: 768px)' ) as $key => $query ) : 
                 $settings = isset( $responsive[$key] ) ? $responsive[$key] : array();
                 if ( empty( $settings ) ) continue;
             ?>
@@ -204,12 +232,10 @@ class WC_Live_Sales_Counter_Ultimate {
                 .wros-stat-card {
                     padding: <?php echo esc_attr( $settings['padding'] ); ?>px !important;
                     margin: <?php echo esc_attr( $settings['margin'] ); ?>px !important;
-                    width: 100% !important; box-sizing: border-box !important;
                 }
                 .wros-icon-wrapper {
                     width: <?php echo esc_attr( $settings['iconSize'] * 1.5 ); ?>px !important;
                     height: <?php echo esc_attr( $settings['iconSize'] * 1.5 ); ?>px !important;
-                    display: flex !important; align-items: center !important; justify-content: center !important;
                     color: <?php echo esc_attr( $settings['iconColor'] ); ?> !important;
                     background: <?php echo $settings['iconBgEnabled'] ? esc_attr( $settings['iconColor'] ) . '15' : 'transparent'; ?> !important;
                     border-radius: <?php echo $settings['iconBgShape'] === 'circle' ? '50%' : '12px'; ?> !important;
@@ -245,14 +271,17 @@ class WC_Live_Sales_Counter_Ultimate {
         </div>
         <script>
             document.querySelectorAll('.wros-value').forEach(el => {
-                const target = parseInt(el.getAttribute('data-target'));
+                const targetStr = el.getAttribute('data-target');
+                const target = parseInt(targetStr.replace(/[^0-9]/g, '')) || 0;
+                const suffix = targetStr.replace(/[0-9]/g, '');
                 let count = 0;
                 const duration = 2000;
+                if (target === 0) { el.innerText = targetStr; return; }
                 const increment = target / (duration / 16);
                 const timer = setInterval(() => {
                     count += increment;
-                    if (count >= target) { el.innerText = target; clearInterval(timer); } 
-                    else { el.innerText = Math.floor(count); }
+                    if (count >= target) { el.innerText = target + suffix; clearInterval(timer); } 
+                    else { el.innerText = Math.floor(count) + suffix; }
                 }, 16);
             });
         </script>
@@ -262,7 +291,7 @@ class WC_Live_Sales_Counter_Ultimate {
 
     private function get_order_stats() {
         $mode = get_option( 'wros_mode', 'analytics' );
-        $enabled_statuses = get_option( 'wros_enabled_statuses', array( 'pending', 'processing', 'completed', 'onHold' ) );
+        $enabled_statuses_opt = get_option( 'wros_enabledStatuses', array( 'pending' => true, 'processing' => true, 'completed' => true, 'onHold' => true ) );
         $stats = array();
         
         $status_map = array(
@@ -272,12 +301,15 @@ class WC_Live_Sales_Counter_Ultimate {
             'onHold'     => 'on-hold'
         );
 
-        foreach ( $enabled_statuses as $status ) {
+        foreach ( $enabled_statuses_opt as $status => $enabled ) {
+            if ( ! $enabled ) continue;
+            
             if ( $mode === 'demo' ) {
-                $stats[$status] = get_option( "wros_demo_{$status}", '0' );
+                $demo_stats = get_option( 'wros_demoStats', array( 'pending' => '15', 'processing' => '42', 'completed' => '5,000+', 'onHold' => '8' ) );
+                $stats[$status] = isset( $demo_stats[$status] ) ? $demo_stats[$status] : '0';
             } else {
                 $wc_status = isset( $status_map[$status] ) ? $status_map[$status] : $status;
-                $args = array( 'status' => $wc_status, 'date_created' => '>' . ( time() - ( 168 * HOUR_IN_SECONDS ) ), 'return' => 'ids' );
+                $args = array( 'status' => $wc_status, 'return' => 'ids' );
                 $query = new WC_Order_Query( $args );
                 $stats[$status] = count( $query->get_orders() );
             }
