@@ -13,6 +13,7 @@ import {
   Bar
 } from 'recharts';
 import { TrendingUp, DollarSign, Users, ShoppingCart } from 'lucide-react';
+import { cn } from '../lib/utils';
 
 const data = [
   { name: 'Mon', sales: 4000, orders: 24, visitors: 2400 },
@@ -90,5 +91,3 @@ export const AnalyticsDashboard: React.FC = () => {
     </div>
   );
 };
-
-import { cn } from '../lib/utils';

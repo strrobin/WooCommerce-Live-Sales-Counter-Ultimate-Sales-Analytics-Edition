@@ -9,10 +9,30 @@ import { cn } from './lib/utils';
 
 export default function App() {
   // Initialize from WordPress data if available
-  const initialConfig = (window as any).wrosData?.settings ? {
-    ...DEFAULT_CONFIG,
-    ... (window as any).wrosData.settings
-  } : DEFAULT_CONFIG;
+  const initialConfig = (() => {
+    const savedSettings = (window as any).wrosData?.settings;
+    if (!savedSettings || typeof savedSettings !== 'object' || Array.isArray(savedSettings)) {
+      return DEFAULT_CONFIG;
+    }
+
+    // Deep merge or at least ensure top-level keys exist and are objects where expected
+    const merged = { ...DEFAULT_CONFIG };
+    
+    (Object.keys(DEFAULT_CONFIG) as Array<keyof PluginConfig>).forEach(key => {
+      if (savedSettings[key] !== undefined) {
+        // If it's an object in DEFAULT_CONFIG, ensure it's an object in savedSettings
+        if (typeof (DEFAULT_CONFIG as any)[key] === 'object' && (DEFAULT_CONFIG as any)[key] !== null) {
+          if (typeof savedSettings[key] === 'object' && savedSettings[key] !== null && !Array.isArray(savedSettings[key])) {
+            (merged as any)[key] = { ...(DEFAULT_CONFIG as any)[key], ...savedSettings[key] };
+          }
+        } else {
+          (merged as any)[key] = savedSettings[key];
+        }
+      }
+    });
+
+    return merged as PluginConfig;
+  })();
 
   const [config, setConfig] = useState<PluginConfig>(initialConfig);
   const [view, setView] = useState<'admin' | 'preview'>('admin');

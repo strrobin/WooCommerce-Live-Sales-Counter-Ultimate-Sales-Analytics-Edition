@@ -102,21 +102,34 @@ class WC_Live_Sales_Counter_Ultimate {
             'apiUrl' => get_rest_url( null, 'wros/v1' ),
             'settings' => $this->get_all_settings()
         ) );
-    }    private function get_all_settings() {
-        return array(
-            'template' => get_option( 'wros_template', 'style-1' ),
-            'mode' => get_option( 'wros_mode', 'analytics' ),
-            'enabledStatuses' => get_option( 'wros_enabledStatuses', array( 'pending' => true, 'processing' => true, 'completed' => true, 'onHold' => true ) ),
-            'demoStats' => get_option( 'wros_demoStats', array( 'pending' => '15', 'processing' => '42', 'completed' => '5,000+', 'onHold' => '8' ) ),
-            'notifications' => get_option( 'wros_notifications', array( 'enabled' => true, 'position' => 'bottom-right', 'interval' => 5000, 'fakeOrders' => true ) ),
-            'responsive' => get_option( 'wros_responsive', array(
+    }
+
+    private function get_all_settings() {
+        $defaults = array(
+            'template' => 'style-1',
+            'mode' => 'analytics',
+            'enabledStatuses' => array( 'pending' => true, 'processing' => true, 'completed' => true, 'onHold' => true ),
+            'demoStats' => array( 'pending' => '15', 'processing' => '42', 'completed' => '5,000+', 'onHold' => '8' ),
+            'notifications' => array( 'enabled' => true, 'position' => 'bottom-right', 'interval' => 5000, 'fakeOrders' => true ),
+            'responsive' => array(
                 'desktop' => array( 'columns' => 4, 'fontSize' => 24, 'fontFamily' => 'Inter', 'fontWeight' => '700', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 20, 'margin' => 10, 'gap' => 20, 'iconSize' => 40, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
                 'tablet' => array( 'columns' => 2, 'fontSize' => 20, 'fontFamily' => 'Inter', 'fontWeight' => '600', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 15, 'margin' => 8, 'gap' => 15, 'iconSize' => 30, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
                 'mobile' => array( 'columns' => 1, 'fontSize' => 18, 'fontFamily' => 'Inter', 'fontWeight' => '600', 'lineHeight' => 1.2, 'letterSpacing' => 0, 'padding' => 10, 'margin' => 5, 'gap' => 10, 'iconSize' => 25, 'iconColor' => '#6366f1', 'iconBgEnabled' => true, 'iconBgShape' => 'circle' ),
-            ) ),
-            'colors' => get_option( 'wros_colors', array( 'primary' => '#6366f1', 'secondary' => '#4f46e5', 'text' => '#111827', 'background' => '#ffffff' ) ),
-            'customCss' => get_option( 'wros_customCss', '' ),
+            ),
+            'colors' => array( 'primary' => '#6366f1', 'secondary' => '#4f46e5', 'text' => '#111827', 'background' => '#ffffff' ),
+            'customCss' => '',
         );
+
+        $settings = array();
+        foreach ( $defaults as $key => $default ) {
+            $val = get_option( 'wros_' . $key, $default );
+            // Ensure array types are preserved
+            if ( is_array( $default ) && ! is_array( $val ) ) {
+                $val = $default;
+            }
+            $settings[$key] = $val;
+        }
+        return $settings;
     }
 
     private function enqueue_google_fonts() {
@@ -318,12 +331,22 @@ class WC_Live_Sales_Counter_Ultimate {
     }
 
     public function render_notification_popup() {
-        $enabled = get_option( 'wros_notifications_enabled', 'yes' );
-        if ( $enabled !== 'yes' ) return;
+        $notifications = get_option( 'wros_notifications', array( 'enabled' => true, 'position' => 'bottom-right', 'interval' => 5000, 'fakeOrders' => true ) );
+        if ( ! is_array( $notifications ) || ! $notifications['enabled'] ) return;
+
         $customer = $this->get_recent_customer();
+        if ( ! $customer && $notifications['fakeOrders'] ) {
+            $fake_names = array( 'John', 'Sarah', 'Michael', 'Emma', 'David', 'Olivia', 'James', 'Sophia' );
+            $fake_cities = array( 'New York', 'London', 'Paris', 'Berlin', 'Tokyo', 'Sydney', 'Toronto', 'Dubai' );
+            $customer = array(
+                'name' => $fake_names[array_rand( $fake_names )],
+                'city' => $fake_cities[array_rand( $fake_cities )]
+            );
+        }
         if ( ! $customer ) return;
-        $position = get_option( 'wros_notifications_position', 'bottom-left' );
-        $interval = get_option( 'wros_notifications_interval', 5000 );
+
+        $position = isset( $notifications['position'] ) ? $notifications['position'] : 'bottom-left';
+        $interval = isset( $notifications['interval'] ) ? $notifications['interval'] : 5000;
         $pos_css = '';
         switch ( $position ) {
             case 'top-left': $pos_css = 'top: 20px; left: 20px;'; break;
