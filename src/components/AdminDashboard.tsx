@@ -37,6 +37,39 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ config, setConfi
   const [deviceTab, setDeviceTab] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
   const [copied, setCopied] = useState(false);
   const [fontSearch, setFontSearch] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  const saveSettings = async () => {
+    setIsSaving(true);
+    const wrosData = (window as any).wrosData;
+    if (!wrosData) {
+      alert('WordPress data not found. Are you in the WordPress admin?');
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      const response = await fetch(`${wrosData.apiUrl}/settings`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-WP-Nonce': wrosData.nonce,
+        },
+        body: JSON.stringify(config),
+      });
+
+      if (response.ok) {
+        alert('Settings saved successfully!');
+      } else {
+        alert('Failed to save settings.');
+      }
+    } catch (error) {
+      console.error('Save error:', error);
+      alert('An error occurred while saving.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const filteredFonts = GOOGLE_FONTS.filter(font => 
     font.toLowerCase().includes(fontSearch.toLowerCase())
@@ -90,8 +123,12 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({ config, setConfi
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
-          <button className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95">
-            Save Changes
+          <button 
+            onClick={saveSettings}
+            disabled={isSaving}
+            className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 active:scale-95 disabled:opacity-50"
+          >
+            {isSaving ? 'Saving...' : 'Save Changes'}
           </button>
         </div>
       </header>

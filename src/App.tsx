@@ -8,7 +8,13 @@ import { Eye, Settings, ExternalLink } from 'lucide-react';
 import { cn } from './lib/utils';
 
 export default function App() {
-  const [config, setConfig] = useState<PluginConfig>(DEFAULT_CONFIG);
+  // Initialize from WordPress data if available
+  const initialConfig = (window as any).wrosData?.settings ? {
+    ...DEFAULT_CONFIG,
+    ... (window as any).wrosData.settings
+  } : DEFAULT_CONFIG;
+
+  const [config, setConfig] = useState<PluginConfig>(initialConfig);
   const [view, setView] = useState<'admin' | 'preview'>('admin');
 
   return (
